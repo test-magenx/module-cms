@@ -10,7 +10,6 @@ use Magento\Cms\Model\Page\DomValidationState;
 use Magento\Framework\App\ObjectManager;
 use Magento\Framework\Config\Dom\ValidationException;
 use Magento\Framework\Config\Dom\ValidationSchemaException;
-use Magento\Cms\Model\Page\CustomLayout\CustomLayoutValidator;
 
 /**
  * Controller helper for user input.
@@ -38,31 +37,22 @@ class PostDataProcessor
     private $validationState;
 
     /**
-     * @var CustomLayoutValidator
-     */
-    private $customLayoutValidator;
-
-    /**
      * @param \Magento\Framework\Stdlib\DateTime\Filter\Date $dateFilter
      * @param \Magento\Framework\Message\ManagerInterface $messageManager
      * @param \Magento\Framework\View\Model\Layout\Update\ValidatorFactory $validatorFactory
-     * @param DomValidationState|null $validationState
-     * @param CustomLayoutValidator|null $customLayoutValidator
+     * @param DomValidationState $validationState
      */
     public function __construct(
         \Magento\Framework\Stdlib\DateTime\Filter\Date $dateFilter,
         \Magento\Framework\Message\ManagerInterface $messageManager,
         \Magento\Framework\View\Model\Layout\Update\ValidatorFactory $validatorFactory,
-        DomValidationState $validationState = null,
-        CustomLayoutValidator $customLayoutValidator = null
+        DomValidationState $validationState = null
     ) {
         $this->dateFilter = $dateFilter;
         $this->messageManager = $messageManager;
         $this->validatorFactory = $validatorFactory;
         $this->validationState = $validationState
             ?: ObjectManager::getInstance()->get(DomValidationState::class);
-        $this->customLayoutValidator = $customLayoutValidator
-            ?: ObjectManager::getInstance()->get(CustomLayoutValidator::class);
     }
 
     /**
@@ -154,9 +144,6 @@ class PostDataProcessor
             if (!empty($data['custom_layout_update_xml']) &&
                 !$layoutXmlValidator->isValid($data['custom_layout_update_xml'])
             ) {
-                return false;
-            }
-            if (!$this->customLayoutValidator->validate($data)) {
                 return false;
             }
         } catch (ValidationException $e) {

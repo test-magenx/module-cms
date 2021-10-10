@@ -436,7 +436,7 @@ class Storage extends \Magento\Framework\DataObject
             );
         }
 
-        $relativePath = (string) $this->_directory->getRelativePath($path);
+        $relativePath = $this->_directory->getRelativePath($path);
         if (!$this->_directory->isDirectory($relativePath) || !$this->_directory->isWritable($relativePath)) {
             $path = $this->_cmsWysiwygImages->getStorageRoot();
         }
