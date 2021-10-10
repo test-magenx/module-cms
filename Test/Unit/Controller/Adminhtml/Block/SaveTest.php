@@ -97,9 +97,6 @@ class SaveTest extends TestCase
      */
     protected $blockId = 1;
 
-    /**
-     * @inheritDoc
-     */
     protected function setUp(): void
     {
         $this->objectManager = new \Magento\Framework\TestFramework\Unit\Helper\ObjectManager($this);
@@ -108,7 +105,7 @@ class SaveTest extends TestCase
 
         $this->resultRedirectFactory = $this->getMockBuilder(RedirectFactory::class)
             ->disableOriginalConstructor()
-            ->onlyMethods(['create'])
+            ->setMethods(['create'])
             ->getMock();
         $this->resultRedirect = $this->getMockBuilder(Redirect::class)
             ->disableOriginalConstructor()
@@ -149,7 +146,7 @@ class SaveTest extends TestCase
 
         $this->objectManagerMock = $this->getMockBuilder(ObjectManager::class)
             ->disableOriginalConstructor()
-            ->onlyMethods(['get', 'create'])
+            ->setMethods(['get', 'create'])
             ->getMock();
 
         $this->contextMock->expects($this->any())->method('getRequest')->willReturn($this->requestMock);
@@ -162,7 +159,7 @@ class SaveTest extends TestCase
 
         $this->blockFactory = $this->getMockBuilder(BlockFactory::class)
             ->disableOriginalConstructor()
-            ->onlyMethods(['create'])
+            ->setMethods(['create'])
             ->getMock();
 
         $this->blockRepository = $this->getMockBuilder(BlockRepositoryInterface::class)
@@ -175,15 +172,12 @@ class SaveTest extends TestCase
                 'context' => $this->contextMock,
                 'dataPersistor' => $this->dataPersistorMock,
                 'blockFactory' => $this->blockFactory,
-                'blockRepository' => $this->blockRepository
+                'blockRepository' => $this->blockRepository,
             ]
         );
     }
 
-    /**
-    * @return void
-    */
-    public function testSaveAction(): void
+    public function testSaveAction()
     {
         $postData = [
             'title' => '"><img src=y onerror=prompt(document.domain)>;',
@@ -200,7 +194,7 @@ class SaveTest extends TestCase
             ->willReturnMap(
                 [
                     ['block_id', null, 1],
-                    ['back', null, 'continue']
+                    ['back', null, 'continue'],
                 ]
             );
 
@@ -229,20 +223,14 @@ class SaveTest extends TestCase
         $this->assertSame($this->resultRedirect, $this->saveController->execute());
     }
 
-    /**
-    * @return void
-    */
-    public function testSaveActionWithoutData(): void
+    public function testSaveActionWithoutData()
     {
         $this->requestMock->expects($this->any())->method('getPostValue')->willReturn(false);
         $this->resultRedirect->expects($this->atLeastOnce())->method('setPath')->with('*/*/')->willReturnSelf();
         $this->assertSame($this->resultRedirect, $this->saveController->execute());
     }
 
-    /**
-    * @return void
-    */
-    public function testSaveActionNoId(): void
+    public function testSaveActionNoId()
     {
         $postData = [
             'block_id' => 1,
@@ -255,7 +243,7 @@ class SaveTest extends TestCase
             ->willReturnMap(
                 [
                     ['block_id', null, 1],
-                    ['back', null, false]
+                    ['back', null, false],
                 ]
             );
 
@@ -277,10 +265,7 @@ class SaveTest extends TestCase
         $this->assertSame($this->resultRedirect, $this->saveController->execute());
     }
 
-    /**
-    * @return void
-    */
-    public function testSaveAndDuplicate(): void
+    public function testSaveAndDuplicate()
     {
         $postData = [
             'title' => 'unique_title_123',
@@ -297,18 +282,22 @@ class SaveTest extends TestCase
             ->willReturnMap(
                 [
                     ['block_id', null, 1],
-                    ['back', null, true]
+                    ['back', null, true],
                 ]
             );
+
+        $this->blockFactory->expects($this->at(0))
+            ->method('create')
+            ->willReturn($this->blockMock);
 
         $duplicateBlockMock = $this->getMockBuilder(
             Block::class
         )->disableOriginalConstructor()
             ->getMock();
 
-        $this->blockFactory
+        $this->blockFactory->expects($this->at(1))
             ->method('create')
-            ->willReturnOnConsecutiveCalls($this->blockMock, $duplicateBlockMock);
+            ->willReturn($duplicateBlockMock);
 
         $duplicateBlockMock->expects($this->atLeastOnce())
             ->method('setId')
@@ -334,13 +323,16 @@ class SaveTest extends TestCase
             ->willReturn($this->blockMock);
 
         $this->blockMock->expects($this->any())->method('setData');
-        $this->blockRepository
-            ->method('save')
-            ->withConsecutive([$this->blockMock], [$duplicateBlockMock]);
+        $this->blockRepository->expects($this->at(1))->method('save')->with($this->blockMock);
+        $this->blockRepository->expects($this->at(2))->method('save')->with($duplicateBlockMock);
 
-        $this->messageManagerMock
+        $this->messageManagerMock->expects($this->at(0))
             ->method('addSuccessMessage')
-            ->withConsecutive([__('You saved the block.')], [__('You duplicated the block.')]);
+            ->with(__('You saved the block.'));
+
+        $this->messageManagerMock->expects($this->at(1))
+            ->method('addSuccessMessage')
+            ->with(__('You duplicated the block.'));
 
         $this->dataPersistorMock->expects($this->any())
             ->method('clear')
@@ -354,10 +346,7 @@ class SaveTest extends TestCase
         $this->assertSame($this->resultRedirect, $this->saveController->execute());
     }
 
-    /**
-    * @return void
-    */
-    public function testSaveAndClose(): void
+    public function testSaveAndClose()
     {
         $postData = [
             'title' => '"><img src=y onerror=prompt(document.domain)>;',
@@ -374,7 +363,7 @@ class SaveTest extends TestCase
             ->willReturnMap(
                 [
                     ['block_id', null, 1],
-                    ['back', null, 'close']
+                    ['back', null, 'close'],
                 ]
             );
 
@@ -403,10 +392,7 @@ class SaveTest extends TestCase
         $this->assertSame($this->resultRedirect, $this->saveController->execute());
     }
 
-    /**
-    * @return void
-    */
-    public function testSaveActionWithMarginalSpace(): void
+    public function testSaveActionWithMarginalSpace()
     {
         $postData = [
             'title' => 'unique_title_123',
@@ -423,7 +409,7 @@ class SaveTest extends TestCase
             ->willReturnMap(
                 [
                     ['block_id', null, 1],
-                    ['back', null, true]
+                    ['back', null, true],
                 ]
             );
 
@@ -458,10 +444,7 @@ class SaveTest extends TestCase
         $this->assertSame($this->resultRedirect, $this->saveController->execute());
     }
 
-    /**
-    * @return void
-    */
-    public function testSaveActionThrowsException(): void
+    public function testSaveActionThrowsException()
     {
         $postData = [
             'title' => '"><img src=y onerror=prompt(document.domain)>;',
@@ -478,7 +461,7 @@ class SaveTest extends TestCase
             ->willReturnMap(
                 [
                     ['block_id', null, 1],
-                    ['back', null, true]
+                    ['back', null, true],
                 ]
             );
 

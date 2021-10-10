@@ -30,9 +30,6 @@ class FilterProviderTest extends TestCase
      */
     protected $_filterMock;
 
-    /**
-     * @inheritdoc
-     */
     protected function setUp(): void
     {
         $this->_filterMock = $this->createMock(Filter::class);
@@ -42,28 +39,25 @@ class FilterProviderTest extends TestCase
     }
 
     /**
-     * @return void
      * @covers \Magento\Cms\Model\Template\FilterProvider::getBlockFilter
      */
-    public function testGetBlockFilter(): void
+    public function testGetBlockFilter()
     {
         $this->assertInstanceOf(Filter::class, $this->_model->getBlockFilter());
     }
 
     /**
-     * @return void
      * @covers \Magento\Cms\Model\Template\FilterProvider::getPageFilter
      */
-    public function testGetPageFilter(): void
+    public function testGetPageFilter()
     {
         $this->assertInstanceOf(Filter::class, $this->_model->getPageFilter());
     }
 
     /**
-     * @return void
      * @covers \Magento\Cms\Model\Template\FilterProvider::getPageFilter
      */
-    public function testGetPageFilterInnerCache(): void
+    public function testGetPageFilterInnerCache()
     {
         $this->_objectManagerMock->expects($this->once())->method('get')->willReturn($this->_filterMock);
         $this->_model->getPageFilter();
@@ -71,15 +65,12 @@ class FilterProviderTest extends TestCase
     }
 
     /**
-     * @return void
      * @covers \Magento\Cms\Model\Template\FilterProvider::getPageFilter
      */
-    public function testGetPageWrongInstance(): void
+    public function testGetPageWrongInstance()
     {
         $this->expectException('Exception');
-        $someClassMock = $this->getMockBuilder('SomeClass')
-            ->allowMockingUnknownTypes()
-            ->getMock();
+        $someClassMock = $this->createMock('SomeClass');
         $objectManagerMock = $this->getMockForAbstractClass(ObjectManagerInterface::class);
         $objectManagerMock->expects($this->once())->method('get')->willReturn($someClassMock);
         $model = new FilterProvider($objectManagerMock, 'SomeClass', 'SomeClass');

@@ -23,16 +23,14 @@
         <cms>
             <wysiwyg>
                 <enabled>enabled</enabled>
-                <editor>mage/adminhtml/wysiwyg/tiny_mce/tinymce5Adapter</editor>
+                <editor>mage/adminhtml/wysiwyg/tiny_mce/tinymce4Adapter</editor>
                 <force_valid>0</force_valid>
             </wysiwyg>
         </cms>
         <system>
             <media_storage_configuration>
                 <allowed_resources>
-                    <media_gallery_image_folders>
-                        <wysiwyg_image_folder>wysiwyg</wysiwyg_image_folder>
-                    </media_gallery_image_folders>
+                    <wysiwyg_image_folder>wysiwyg</wysiwyg_image_folder>
                     <preview_folder>.thumbs</preview_folder>
                 </allowed_resources>
             </media_storage_configuration>

@@ -8,9 +8,7 @@ declare(strict_types=1);
 namespace Magento\Cms\Test\Unit\Controller\Noroute;
 
 use Magento\Cms\Controller\Noroute\Index;
-use Magento\Cms\Helper\Page as CmsPage;
 use Magento\Framework\App\Config\ScopeConfigInterface;
-use Magento\Framework\App\Request\Http as RequestHttp;
 use Magento\Framework\App\Response\Http;
 use Magento\Framework\Controller\Result\Forward;
 use Magento\Framework\Controller\Result\ForwardFactory;
@@ -56,9 +54,6 @@ class IndexTest extends TestCase
      */
     protected $resultPageMock;
 
-    /**
-     * @inheritdoc
-     */
     protected function setUp(): void
     {
         $helper = new ObjectManager($this);
@@ -68,7 +63,7 @@ class IndexTest extends TestCase
             ->disableOriginalConstructor()
             ->getMock();
         $this->forwardFactoryMock = $this->getMockBuilder(ForwardFactory::class)
-            ->onlyMethods(['create'])
+            ->setMethods(['create'])
             ->disableOriginalConstructor()
             ->getMock();
         $this->forwardMock = $this->getMockBuilder(Forward::class)
@@ -79,15 +74,14 @@ class IndexTest extends TestCase
             ->willReturn($this->forwardMock);
 
         $scopeConfigMock = $this->getMockForAbstractClass(ScopeConfigInterface::class);
-        $this->_requestMock = $this->createMock(RequestHttp::class);
-        $this->_cmsHelperMock = $this->createMock(CmsPage::class);
+        $this->_requestMock = $this->createMock(\Magento\Framework\App\Request\Http::class);
+        $this->_cmsHelperMock = $this->createMock(\Magento\Cms\Helper\Page::class);
         $valueMap = [
-            [
-                ScopeConfigInterface::class,
+            [ScopeConfigInterface::class,
                 ScopeInterface::SCOPE_STORE,
                 $scopeConfigMock,
             ],
-            [CmsPage::class, $this->_cmsHelperMock]
+            [\Magento\Cms\Helper\Page::class, $this->_cmsHelperMock],
         ];
         $objectManagerMock->expects($this->any())->method('get')->willReturnMap($valueMap);
         $scopeConfigMock->expects(
@@ -95,34 +89,33 @@ class IndexTest extends TestCase
         )->method(
             'getValue'
         )->with(
-            CmsPage::XML_PATH_NO_ROUTE_PAGE
+            \Magento\Cms\Helper\Page::XML_PATH_NO_ROUTE_PAGE
         )->willReturn(
             'pageId'
         );
         $this->_controller = $helper->getObject(
             Index::class,
-            [
-                'response' => $responseMock,
-                'objectManager' => $objectManagerMock,
-                'request' => $this->_requestMock,
+            ['response' => $responseMock, 'objectManager' => $objectManagerMock, 'request' => $this->_requestMock,
                 'resultForwardFactory' => $this->forwardFactoryMock
             ]
         );
     }
 
-    /**
-     * @return void
-     */
-    public function testExecuteResultPage(): void
+    public function testExecuteResultPage()
     {
-        $this->resultPageMock
-            ->method('setStatusHeader')
-            ->with(404, '1.1', 'Not Found')
-            ->willReturn($this->resultPageMock);
-        $this->resultPageMock
-            ->method('setHeader')
-            ->with('Status', '404 File not found')
-            ->willReturn($this->resultPageMock);
+        $this->resultPageMock->expects(
+            $this->at(0)
+        )->method(
+            'setStatusHeader'
+        )->with(404, '1.1', 'Not Found')->willReturnSelf();
+        $this->resultPageMock->expects(
+            $this->at(1)
+        )->method(
+            'setHeader'
+        )->with(
+            'Status',
+            '404 File not found'
+        )->willReturnSelf();
         $this->_cmsHelperMock->expects(
             $this->once()
         )->method(
@@ -136,10 +129,7 @@ class IndexTest extends TestCase
         );
     }
 
-    /**
-     * @return void
-     */
-    public function testExecuteResultForward(): void
+    public function testExecuteResultForward()
     {
         $this->forwardMock->expects(
             $this->once()

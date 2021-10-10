@@ -14,8 +14,8 @@ use Magento\Cms\Helper\Wysiwyg\Images;
 use Magento\Cms\Model\Wysiwyg\Images\Storage;
 use Magento\Cms\Model\Wysiwyg\Images\Storage\Collection as StorageCollection;
 use Magento\Cms\Model\Wysiwyg\Images\Storage\CollectionFactory;
-use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\Filesystem\DirectoryList;
+use Magento\Framework\DataObject;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Filesystem;
 use Magento\Framework\Filesystem\Directory\Write;
@@ -49,92 +49,92 @@ class StorageTest extends TestCase
     /**
      * @var Storage
      */
-    private $imagesStorage;
+    protected $imagesStorage;
 
     /**
      * @var MockObject
      */
-    private $filesystemMock;
+    protected $filesystemMock;
 
     /**
      * @var MockObject
      */
-    private $adapterFactoryMock;
+    protected $adapterFactoryMock;
 
     /**
      * @var MockObject
      */
-    private $imageHelperMock;
+    protected $imageHelperMock;
 
     /**
      * @var array()
      */
-    private $resizeParameters;
+    protected $resizeParameters;
 
     /**
      * @var CollectionFactory|MockObject
      */
-    private $storageCollectionFactoryMock;
+    protected $storageCollectionFactoryMock;
 
     /**
      * @var FileFactory|MockObject
      */
-    private $storageFileFactoryMock;
+    protected $storageFileFactoryMock;
 
     /**
      * @var DatabaseFactory|MockObject
      */
-    private $storageDatabaseFactoryMock;
+    protected $storageDatabaseFactoryMock;
 
     /**
      * @var \Magento\MediaStorage\Model\File\Storage\Directory\DatabaseFactory|MockObject
      */
-    private $directoryDatabaseFactoryMock;
+    protected $directoryDatabaseFactoryMock;
 
     /**
      * @var Database|MockObject
      */
-    private $directoryCollectionMock;
+    protected $directoryCollectionMock;
 
     /**
      * @var UploaderFactory|MockObject
      */
-    private $uploaderFactoryMock;
+    protected $uploaderFactoryMock;
 
     /**
      * @var Session|MockObject
      */
-    private $sessionMock;
+    protected $sessionMock;
 
     /**
      * @var Url|MockObject
      */
-    private $backendUrlMock;
+    protected $backendUrlMock;
 
     /**
      * @var Write|MockObject
      */
-    private $directoryMock;
+    protected $directoryMock;
 
     /**
      * @var DriverInterface|MockObject
      */
-    private $driverMock;
+    protected $driverMock;
 
     /**
      * @var \Magento\MediaStorage\Helper\File\Storage\Database|MockObject
      */
-    private $coreFileStorageMock;
+    protected $coreFileStorageMock;
 
     /**
      * @var ObjectManager|MockObject
      */
-    private $objectManagerHelper;
+    protected $objectManagerHelper;
 
     /**
      * @var File|MockObject
      */
-    private $ioFileMock;
+    protected $ioFileMock;
 
     /**
      * @var \Magento\Framework\Filesystem\Driver\File|MockObject
@@ -147,11 +147,6 @@ class StorageTest extends TestCase
         'png' => 'image/png',
         'gif' => 'image/png',
     ];
-
-    /**
-     * @var \Magento\Framework\App\Config\ScopeConfigInterface|MockObject
-     */
-    private $coreConfigMock;
 
     /**
      * @return void
@@ -257,21 +252,6 @@ class StorageTest extends TestCase
             'image_allowed' => $this->allowedImageExtensions,
         ];
 
-        $this->coreConfigMock = $this->getMockBuilder(ScopeConfigInterface::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-        $config = [
-            'target',
-            'folder1',
-            'folder2/subfolder21',
-            'folder2/subfolder22',
-            'folder3/subfolder31/subfolder32'
-        ];
-        $this->coreConfigMock->expects($this->any())
-            ->method('getValue')
-            ->with('system/media_storage_configuration/allowed_resources/media_gallery_image_folders')
-            ->willReturn($config);
-
         $this->imagesStorage = $this->objectManagerHelper->getObject(
             Storage::class,
             [
@@ -295,8 +275,7 @@ class StorageTest extends TestCase
                 ],
                 'data' => [],
                 'file' => $this->fileMock,
-                'ioFile' => $this->ioFileMock,
-                'coreConfig' => $this->coreConfigMock
+                'ioFile' => $this->ioFileMock
             ]
         );
     }
@@ -323,7 +302,9 @@ class StorageTest extends TestCase
     public function testDeleteDirectoryOverRoot()
     {
         $this->expectException('Magento\Framework\Exception\LocalizedException');
-        $this->expectExceptionMessage('We cannot delete the selected directory.');
+        $this->expectExceptionMessage('Directory /storage/some/another/dir is not under storage root path.');
+        $this->driverMock->expects($this->atLeastOnce())->method('getRealPathSafety')->willReturnArgument(0);
+        $this->directoryMock->expects($this->atLeastOnce())->method('getAbsolutePath')->willReturnArgument(0);
         $this->imagesStorage->deleteDirectory(self::INVALID_DIRECTORY_OVER_ROOT);
     }
 
@@ -333,7 +314,9 @@ class StorageTest extends TestCase
     public function testDeleteRootDirectory()
     {
         $this->expectException('Magento\Framework\Exception\LocalizedException');
-        $this->expectExceptionMessage('We cannot delete the selected directory.');
+        $this->expectExceptionMessage('We can\'t delete root directory /storage/root/dir right now.');
+        $this->driverMock->expects($this->atLeastOnce())->method('getRealPathSafety')->willReturnArgument(0);
+        $this->directoryMock->expects($this->atLeastOnce())->method('getAbsolutePath')->willReturnArgument(0);
         $this->imagesStorage->deleteDirectory(self::STORAGE_ROOT_DIR);
     }
 
@@ -358,11 +341,7 @@ class StorageTest extends TestCase
             ->method('create')
             ->with(rtrim(self::STORAGE_ROOT_DIR, '/') . '/' . $directoryName);
 
-        $this->generalTestGetDirsCollection(
-            self::STORAGE_ROOT_DIR,
-            1,
-            '/^(target|folder1|folder2|folder3)$/'
-        );
+        $this->generalTestGetDirsCollection(self::STORAGE_ROOT_DIR);
     }
 
     /**
@@ -372,9 +351,45 @@ class StorageTest extends TestCase
      * @param array $expectedRemoveKeys
      * @dataProvider dirsCollectionDataProvider
      */
-    public function testGetDirsCollection($path, $callNum, $dirsFilter='')
+    public function testGetDirsCollection($exclude, $include, $fileNames, $expectedRemoveKeys)
     {
-        $this->generalTestGetDirsCollection($path, $callNum, $dirsFilter);
+        $this->imagesStorage = $this->objectManagerHelper->getObject(
+            Storage::class,
+            [
+                'session' => $this->sessionMock,
+                'backendUrl' => $this->backendUrlMock,
+                'cmsWysiwygImages' => $this->imageHelperMock,
+                'coreFileStorageDb' => $this->coreFileStorageMock,
+                'filesystem' => $this->filesystemMock,
+                'imageFactory' => $this->adapterFactoryMock,
+                'assetRepo' => $this->createMock(Repository::class),
+                'storageCollectionFactory' => $this->storageCollectionFactoryMock,
+                'storageFileFactory' => $this->storageFileFactoryMock,
+                'storageDatabaseFactory' => $this->storageDatabaseFactoryMock,
+                'directoryDatabaseFactory' => $this->directoryDatabaseFactoryMock,
+                'uploaderFactory' => $this->uploaderFactoryMock,
+                'resizeParameters' => $this->resizeParameters,
+                'dirs' => [
+                    'exclude' => $exclude,
+                    'include' => $include,
+                ],
+            ]
+        );
+
+        $collection = [];
+        foreach ($fileNames as $filename) {
+            /** @var DataObject|MockObject $objectMock */
+            $objectMock = $this->getMockBuilder(DataObject::class)
+                ->addMethods(['getFilename'])
+                ->disableOriginalConstructor()
+                ->getMock();
+            $objectMock->expects($this->any())
+                ->method('getFilename')
+                ->willReturn(self::STORAGE_ROOT_DIR . $filename);
+            $collection[] = $objectMock;
+        }
+
+        $this->generalTestGetDirsCollection(self::STORAGE_ROOT_DIR, $collection, $expectedRemoveKeys);
     }
 
     /**
@@ -384,36 +399,48 @@ class StorageTest extends TestCase
     {
         return [
             [
-                'path' => self::STORAGE_ROOT_DIR,
-                'callNum' => 1,
-                'dirsFilter' => '/^(target|folder1|folder2|folder3)$/'
+                'exclude' => [
+                    ['name' => 'dress'],
+                ],
+                'include' => [],
+                'filenames' => [],
+                'expectRemoveKeys' => [],
             ],
             [
-                'path' => self::STORAGE_ROOT_DIR . 'target',
-                'callNum' => 0,
+                'exclude' => [],
+                'include' => [],
+                'filenames' => [
+                    '/dress',
+                ],
+                'expectRemoveKeys' => [],
             ],
             [
-                'path' => self::STORAGE_ROOT_DIR . 'folder1/subfolder',
-                'callNum' => 0,
+                'exclude' => [
+                    ['name' => 'dress'],
+                ],
+                'include' => [],
+                'filenames' => [
+                    '/collection',
+                ],
+                'expectRemoveKeys' => [],
             ],
             [
-                'path' => self::STORAGE_ROOT_DIR . 'folder2',
-                'callNum' => 1,
-                'dirsFilter' => '/^(subfolder21|subfolder22)$/'
-            ],
-            [
-                'path' => self::STORAGE_ROOT_DIR . 'folder3/subfolder31',
-                'callNum' => 1,
-                'dirsFilter' => '/^(subfolder32)$/'
-            ],
-            [
-                'path' => self::STORAGE_ROOT_DIR . 'folder3/subfolder31/subfolder32',
-                'callNum' => 0,
-            ],
-            [
-                'path' => self::STORAGE_ROOT_DIR . 'unknown',
-                'callNum' => 1,
-                'dirsFilter' => '/^()$/'
+                'exclude' => [
+                    ['name' => 'gear', 'regexp' => 1],
+                    ['name' => 'home', 'regexp' => 1],
+                    ['name' => 'collection'],
+                    ['name' => 'dress'],
+                ],
+                'include' => [
+                    ['name' => 'home', 'regexp' => 1],
+                    ['name' => 'collection'],
+                ],
+                'filenames' => [
+                    '/dress',
+                    '/collection',
+                    '/gear',
+                ],
+                'expectRemoveKeys' => [[0], [2]],
             ],
         ];
     }
@@ -422,11 +449,10 @@ class StorageTest extends TestCase
      * General conditions for testGetDirsCollection tests
      *
      * @param string $path
-     * @param int $callNum
-     * @param string $dirsFilter
-     * @throws \Exception
+     * @param array $collectionArray
+     * @param array $expectedRemoveKeys
      */
-    protected function generalTestGetDirsCollection(string $path, int $callNum, string $dirsFilter)
+    protected function generalTestGetDirsCollection($path, $collectionArray = [], $expectedRemoveKeys = [])
     {
         /** @var StorageCollection|MockObject $storageCollectionMock */
         $storageCollectionMock = $this->getMockBuilder(\Magento\Cms\Model\Wysiwyg\Images\Storage\Collection::class)
@@ -448,9 +474,12 @@ class StorageTest extends TestCase
             ->method('setOrder')
             ->with('basename', \Magento\Framework\Data\Collection\Filesystem::SORT_ORDER_ASC)
             ->willReturnSelf();
-        $storageCollectionMock->expects($this->exactly($callNum))
-            ->method('setDirsFilter')
-            ->with($dirsFilter);
+        $storageCollectionMock->expects($this->once())
+            ->method('getIterator')
+            ->willReturn(new \ArrayIterator($collectionArray));
+        $storageCollectionInvMock = $storageCollectionMock->expects($this->exactly(count($expectedRemoveKeys)))
+            ->method('removeItemByKey');
+        call_user_func_array([$storageCollectionInvMock, 'withConsecutive'], $expectedRemoveKeys);
 
         $this->storageCollectionFactoryMock->expects($this->once())
             ->method('create')
