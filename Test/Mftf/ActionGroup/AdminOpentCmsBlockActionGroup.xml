@@ -5,14 +5,12 @@
   * See COPYING.txt for license details.
   */
 -->
-
 <actionGroups xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
               xsi:noNamespaceSchemaLocation="urn:magento:mftf:Test/etc/actionGroupSchema.xsd">
-    <actionGroup name="AdminEnableWYSIWYGActionGroup">
-        <annotations>
-            <description>Runs bin/magento command to enable WYSIWYG</description>
-        </annotations>
-
-        <magentoCLI stepKey="enableWYSIWYG" command="config:set cms/wysiwyg/enabled enabled"/>
+    <actionGroup name="AdminOpenCmsBlockActionGroup">
+        <arguments>
+            <argument name="block_id" type="string"/>
+        </arguments>
+        <amOnPage url="{{AdminEditBlockPage.url(block_id)}}" stepKey="openEditCmsBlock"/>
     </actionGroup>
 </actionGroups>
